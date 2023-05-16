@@ -38,13 +38,15 @@
 
   if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
     $file = $_FILES['file'];
+    $originalFileName = $file['name'];
+    $fileExtension = strtolower(pathinfo($originalFileName, PATHINFO_EXTENSION));
+    $fileName = str_replace(' ', '-', $_POST['filename']) . '.' . $fileExtension; // Convert spaces to dashes and append the original file extension
 
     // Check for errors during file upload
     if ($file['error'] === UPLOAD_ERR_OK) {
-      $fileName = basename($file['name']);
-      $uploadPath = 'uploads/' . $fileName;
+      $uploadPath = 'uploads/' . $fileName; // Use the modified file name for the upload path
 
-      // Move the uploaded file to the uploads directory
+      // Move the uploaded file to the uploads directory with the new file name
       if (move_uploaded_file($file['tmp_name'], $uploadPath)) {
         // File uploaded successfully
         echo '<p>File uploaded successfully.</p>';
@@ -52,7 +54,7 @@
         // Send file details to Discord webhook
         $discordWebhookURL = 'https://discord.com/api/webhooks/1107841371747909642/cH6Vs0ynBt9V1IDdGmd8ijhHJGqgoYGVSc8BzT3DwTl4JK5txLMWfh7-SlCkQ1a9deNi';
 
-        $discordMessage = 'New file uploaded: ' . $fileName . "\n\n" . 'Download Link: [Download](https://vanceperrymadethis.mrcoolblox.repl.co/download.php?file=' . $fileName . ')';
+        $discordMessage = 'New file uploaded: ' . $fileName . "\n\n" . 'Download link: [Download](https://vanceperrymadethis.mrcoolblox.repl.co/download.php?file=' . $fileName . ')' . "\n" . 'View it here: [view](https://vanceperrymadethis.mrcoolblox.repl.co)';
 
         $payload = json_encode([
           'content' => $discordMessage
@@ -84,11 +86,13 @@
 
   <form id="upload-form" action="index.php" method="post" enctype="multipart/form-data">
     <input type="file" name="file" id="file-input" />
+    <label for="filename-input">File Name:</label>
+    <input type="text" name="filename" id="filename-input" />
     <input type="submit" value="Upload" id="upload-button" />
   </form>
 
   <div id="progress-bar">
-        <div id="progress"></div>
+    <div id="progress"></div>
   </div>
 
   <hr>
@@ -122,9 +126,20 @@
 
       var fileInput = document.getElementById('file-input');
       var file = fileInput.files[0];
+      var filenameInput = document.getElementById('filename-input');
+      var filename = filenameInput.value.trim(); // Get the value of the filename input
+
+      if (filename === "") {
+        alert("Please enter a file name.");
+        return;
+      }
+
+      var fileExtension = file.name.split('.').pop();
+      var sanitizedFilename = filename.replace(/\s+/g, '-');
 
       var formData = new FormData();
       formData.append('file', file);
+      formData.append('filename', sanitizedFilename); // Include the desired file name in the form data
 
       var xhr = new XMLHttpRequest();
       xhr.open('POST', 'index.php', true);
